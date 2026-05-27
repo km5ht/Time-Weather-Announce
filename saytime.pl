@@ -14,18 +14,18 @@
 #
 # 00 0-23 * * * cd /etc/asterisk/wa3dsp; perl saytime.pl [<wxid>] <node> > /dev/null
 #
-# Note in this program all sound files must be .gsm
+# Note in this program all sound files must be .$ext
 # All combined soundfiile formats need to be the same.
 # This could be changed if necessary. To use this with the
 # stock Acid release you will need to convert a couple
-# of the ulaw files in the /sounds/rpt directory to .gsm
+# of the $ext files in the /sounds/rpt directory to .$ext
 # using sox or another conversion program and place them
 # in the sounds directory for use by this program.
-# The good-xxx.gsm files and the-time-is.gsm were created
-# from ulaw files in the /sounds/rpt directory.
+# The good-xxx.$ext files and the-time-is.$ext were created
+# from $ext files in the /sounds/rpt directory.
 # An example sox command to do this is -
 #
-#  sox -t ul -r 8000 /var/lib/asterisk/sounds/rpt/thetimeis.ulaw /var/lib/asterisk/sounds/the-time-is.gsm
+#  sox -t ul -r 8000 /usr/local/share/asterisk/sounds/custom/rpt/thetimeis.$ext /usr/local/share/asterisk/sounds/custom/the-time-is.$ext
 
 # Added optional weather condition and temperature statement after time
 # WA3DSP 4/2017
@@ -39,16 +39,31 @@
 
 # WA3DSP 12/2019
 # Added header sound file. To add place wx_header sound file in /etc/asterisk/local
-# This sound file can be any playable sound file type - .ul,.gsm, etc.
-# EX: /etc/asterisk/local/wx_header.gsm,  /etc/asterisk/local/wx_header.ul
+# This sound file can be any playable sound file type - .ul,.$ext, etc.
+# EX: /etc/asterisk/local/wx_header.$ext,  /etc/asterisk/local/wx_header.ul
 # This will play the header sound file prior to time and optionally temperature/condition
 
 # WA3DSP 1/2020
 # Added optional third parameter to save time and weather "1" or
-# save just weather "2" gsm file. If the third parameter is present it will
-# not be voiced to the node only saved as /tmp/current-time.gsm
+# save just weather "2" $ext file. If the third parameter is present it will
+# not be voiced to the node only saved as /tmp/current-time.$ext
 # If the third parameter is not present or "0" time and temperature will
 # be voiced to the seleted node.
+
+# SDA 5/27/2026
+# changed the base file path and changed file format to ulaw from gsm.
+# I use ASL3_write_custom_sounds to write custom sound bytes using TTS.
+# https://github.com/km5ht/ASL3_write_custom_sounds
+# I wanted the option of selecting ulaw or gsm easily.
+#
+# Crontab entries or enter them manually. Pick a voice and make 
+# sure it is in the environment for the rest of the world to use
+# as well as /tmp/voice for other programs to grab
+# This way I only have to change the voice in root crontab.
+#
+# TTSVOICE=en_US-amy-low.onnx
+# 57 * * * * echo $TTSVOICE > /tmp/voice
+#
 
 use strict;
 use warnings;
@@ -60,9 +75,12 @@ $| = 1;
 #
 # Replace with your output directory
 my $outdir = "/tmp";
+my $ext = "ulaw";
+#my $ext = "gsm";
 #
 my $ampm = "PM";
-my $base = "/var/lib/asterisk/sounds";
+#my $base = "/usr/local/share/asterisk/sounds/custom";
+my $base = "/usr/share/asterisk/sounds/custom";
 my $FNAME,my $error,my $day,my $hour,my $min,my $mynode,my $wx,my $wxid;
 my @proglist,my @list,my $sec,my $wday,my $mon,my $year,my $greet;
 my $year_1900,my $isdst,my $yday,my $min1,my $min10,my $localwxtemp10,my $localwxtemp1;
@@ -138,95 +156,95 @@ if ($Silent != "2") {
 if ($hour < 12) {
   $greet = "Good Morning";
   $ampm = "AM";
-  $FNAME = $base . "/good-morning.gsm ";
+  $FNAME = $base . "/good-morning.$ext ";
  }
 elsif ($hour >= 12 && $hour < 18) {
   $greet = "Good Afternoon";
-  $FNAME = $base . "/good-afternoon.gsm ";
+  $FNAME = $base . "/good-afternoon.$ext ";
  }
 else {
   $greet = "Good Evening";
-  $FNAME = $base . "/good-evening.gsm ";
+  $FNAME = $base . "/good-evening.$ext ";
 }
 
 if ($hour > 12) { $hour = $hour-12 };
 if ($hour == 0) { $hour = 12 };
-$FNAME = $FNAME . $base . "/the-time-is.gsm ";
-$FNAME = $FNAME . $base . "/digits/" . $hour . ".gsm ";
+$FNAME = $FNAME . $base . "/the-time-is.$ext ";
+$FNAME = $FNAME . $base . "/digits/" . $hour . ".$ext ";
 
 if ($min != 0) {
-#  $FNAME = $FNAME . $base . "/digits/oclock.gsm ";
+#  $FNAME = $FNAME . $base . "/digits/oclock.$ext ";
 # } else {
   if ($min < 10) {
-    $FNAME = $FNAME . $base . "/digits/oh.gsm ";
-    $FNAME = $FNAME . $base . "/digits/" . $min . ".gsm ";
+    $FNAME = $FNAME . $base . "/digits/oh.$ext ";
+    $FNAME = $FNAME . $base . "/digits/" . $min . ".$ext ";
   }
   elsif ($min < 20) {
-    $FNAME = $FNAME . $base . "/digits/" . $min . ".gsm ";
+    $FNAME = $FNAME . $base . "/digits/" . $min . ".$ext ";
   } else {
     $min10 = substr ($min,0,1) . "0";
-    $FNAME = $FNAME . $base . "/digits/" . $min10 . ".gsm ";
+    $FNAME = $FNAME . $base . "/digits/" . $min10 . ".$ext ";
     $min1 = substr ($min,1,1);
     if ($min1 > 0) {
-      $FNAME = $FNAME . $base . "/digits/" . $min1 . ".gsm ";
+      $FNAME = $FNAME . $base . "/digits/" . $min1 . ".$ext ";
     }
   }
 }
 
 if ($ampm =~ "AM") {
-  $FNAME = $FNAME . $base . "/digits/a-m.gsm ";
+  $FNAME = $FNAME . $base . "/digits/a-m.$ext ";
 } else {
-  $FNAME = $FNAME . $base . "/digits/p-m.gsm ";
+  $FNAME = $FNAME . $base . "/digits/p-m.$ext ";
 }
 } else {
  $FNAME = "";
 }
 
 if ($wx eq "YES") {
-    $FNAME = $FNAME . $base . "/silence/1.gsm ";
+    $FNAME = $FNAME . $base . "/silence/1.$ext ";
 
-if (-e "$outdir/condition.gsm") {
-    $FNAME = $FNAME . $base . "/weather.gsm ";
-    $FNAME = $FNAME . $base . "/conditions.gsm ";
-    $FNAME = $FNAME . "$outdir/condition.gsm ";
+if (-e "$outdir/condition.$ext") {
+    $FNAME = $FNAME . $base . "/weather.$ext ";
+    $FNAME = $FNAME . $base . "/conditions.$ext ";
+    $FNAME = $FNAME . "$outdir/condition.$ext ";
 }
 if ($localwxtemp ne "" ) {
-    $FNAME = $FNAME . $base . "/wx/temperature.gsm ";
+    $FNAME = $FNAME . $base . "/wx/temperature.$ext ";
 
     if ($localwxtemp < -1 ) {
-        $FNAME = $FNAME . $base . "/digits/minus.gsm ";
+        $FNAME = $FNAME . $base . "/digits/minus.$ext ";
         $localwxtemp=int(abs($localwxtemp));
     } else {
         $localwxtemp=int($localwxtemp);
     }
 
     if ($localwxtemp >= 100) {
-        $FNAME = $FNAME . $base . "/digits/" . "1" . ".gsm ";
-        $FNAME = $FNAME . $base . "/digits/" . "hundred" . ".gsm ";
+        $FNAME = $FNAME . $base . "/digits/" . "1" . ".$ext ";
+        $FNAME = $FNAME . $base . "/digits/" . "hundred" . ".$ext ";
         if ($localwxtemp > 100) {
            $localwxtemp=($localwxtemp-100);
         }
     }
 
     if ($localwxtemp < 20) {
-        $FNAME = $FNAME . $base . "/digits/" . $localwxtemp . ".gsm ";
+        $FNAME = $FNAME . $base . "/digits/" . $localwxtemp . ".$ext ";
     } elsif ($localwxtemp != 100)
         {
         $localwxtemp10 = substr ($localwxtemp,0,1) . "0";
-        $FNAME = $FNAME . $base . "/digits/" . $localwxtemp10 . ".gsm ";
+        $FNAME = $FNAME . $base . "/digits/" . $localwxtemp10 . ".$ext ";
         $localwxtemp1 = substr ($localwxtemp,1,1);
         if ($localwxtemp1 > 0) {
-          $FNAME = $FNAME . $base . "/digits/" . $localwxtemp1 . ".gsm ";
+          $FNAME = $FNAME . $base . "/digits/" . $localwxtemp1 . ".$ext ";
         }
     }
-    $FNAME = $FNAME . $base . "/degrees.gsm ";
+    $FNAME = $FNAME . $base . "/degrees.$ext ";
  }
 }
 
 #
 # Following lines concatenate all of the files to one output file
 #
-@proglist = ("cat " . $FNAME . " > " . $outdir . "/current-time.gsm");
+@proglist = ("cat " . $FNAME . " > " . $outdir . "/current-time.$ext");
 system(@proglist);
 #
 # Following lines process the output file with sox to lower the volume
@@ -235,7 +253,7 @@ system(@proglist);
 #
 # REMOVED V1.5 - use telemetry levels
 #
-#@proglist = ("nice -19 sox --temp /tmp " . $outdir . "/temp.gsm " . $outdir . "/current-time.gsm vol -0.35");
+#@proglist = ("nice -19 sox --temp /tmp " . $outdir . "/temp.$ext " . $outdir . "/current-time.$ext vol -0.35");
 #system(@proglist);
 #
 # Say the time on the local node
@@ -248,18 +266,18 @@ if ($Silent == "0") {
 # Note that unlinking the audio file may prevent it from playing when the system is busy.
 #
 #	sleep(2);
-#	unlink "$outdir/current-time.gsm";
+#	unlink "$outdir/current-time.$ext";
 } elsif ($Silent == "1")
-	{ print "\nSaved time and weather sound file to $outdir/current-time.gsm\n\n"
+	{ print "\nSaved time and weather sound file to $outdir/current-time.$ext\n\n"
 } elsif ($Silent == "2")
-	{ print "\nSaved weather sound file to $outdir/current-time.gsm\n\n"
+	{ print "\nSaved weather sound file to $outdir/current-time.$ext\n\n"
 }
 
 # Cleanup /tmp files
 unlink "$outdir/temperature";
-unlink "$outdir/condition.gsm";
+unlink "$outdir/condition.$ext";
 if ($Silent != "1" && $Silent != "2") {
-    unlink "$outdir/current-time.gsm";
+    unlink "$outdir/current-time.$ext";
 }
 
 # end of saytime.pl
